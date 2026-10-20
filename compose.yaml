@@ -1,0 +1,35 @@
+﻿services:
+  kafka:
+    image: apache/kafka:latest
+    ports:
+      - "9092:9092"
+  crypto-ticker.alertservice:
+    image: crypto-ticker.alertservice
+    build:
+      context: .
+      dockerfile: src/crypto-ticker.AlertService/Dockerfile
+
+  crypto-ticker.archiver:
+    image: crypto-ticker.archiver
+    build:
+      context: .
+      dockerfile: src/crypto-ticker.Archiver/Dockerfile
+
+  crypto-ticker.candleservice:
+    image: crypto-ticker.candleservice
+    build:
+      context: .
+      dockerfile: src/crypto-ticker.CandleService/Dockerfile
+
+  crypto-ticker.ingester:
+    image: crypto-ticker.ingester
+    build:
+      context: .
+      dockerfile: src/crypto-ticker.Ingester/Dockerfile
+
+  crypto-ticker.priceservice:
+    image: crypto-ticker.priceservice
+    build:
+      context: .
+      dockerfile: src/crypto-ticker.PriceService/Dockerfile
+
