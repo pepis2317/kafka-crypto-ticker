@@ -13,7 +13,7 @@ namespace tests;
 public class IngesterTest
 {
     private readonly Mock<IWebSocketFactory> _socketFactory = new();
-    private readonly Mock<IProducerFactory> _producerfactory = new();
+    private readonly Mock<IProducerFactory> _producerFactory = new();
     
     private readonly KafkaConfiguration _kafkaConfig = new()
     {
@@ -39,7 +39,7 @@ public class IngesterTest
     {
         return new BinanceWebSocketIngester(
             _socketFactory.Object,
-            _producerfactory.Object,
+            _producerFactory.Object,
             new NullLogger<BinanceWebSocketIngester>(),
             Options.Create(_kafkaConfig),
             Options.Create(_socketConfig));
@@ -53,16 +53,15 @@ public class IngesterTest
         _socketFactory.SetupSequence(q => q.Create()).Returns(ws);
         
         var producer = new Mock<IProducer<string, string>>();
-        _producerfactory.Setup(q => q.Create()).Returns(producer.Object);
+        _producerFactory.Setup(q => q.Create()).Returns(producer.Object);
 
         Message<string, string>? sent = null;
-        //TODO: make this readable to my puny mind
-        producer.Setup(p => p.Produce(
-                It.IsAny<string>(),
-                It.IsAny<Message<string, string>>(),
-                It.IsAny<Action<DeliveryReport<string, string>>>()))
-            .Callback<string, Message<string, string>, Action<DeliveryReport<string, string>>>(
-                (topic, message, _) => sent = message);
+        producer.Setup(p => 
+                p.Produce(It.IsAny<string>(), 
+                    It.IsAny<Message<string, string>>(), 
+                    It.IsAny<Action<DeliveryReport<string, string>>>()))
+            .Callback<string, Message<string, string>, 
+                Action<DeliveryReport<string, string>>>((topic, message, _) => sent = message);
 
         var sut = CreateSut();
         await sut.StartAsync(cts.Token);
@@ -97,7 +96,7 @@ public class IngesterTest
             });  // Second time Create is called, return healthyWs
         
         var producer = new Mock<IProducer<string, string>>();
-        _producerfactory.Setup(q => q.Create()).Returns(producer.Object);
+        _producerFactory.Setup(q => q.Create()).Returns(producer.Object);
         
         var sut = CreateSut();
         await sut.StartAsync(CancellationToken.None);
