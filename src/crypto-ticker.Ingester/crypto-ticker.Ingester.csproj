@@ -19,4 +19,9 @@
       <Link>.dockerignore</Link>
     </Content>
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\crypto-ticker.Contracts\crypto-ticker.Contracts.csproj" />
+    <ProjectReference Include="..\crypto-ticker.Kafka\crypto-ticker.Kafka.csproj" />
+  </ItemGroup>
 </Project>

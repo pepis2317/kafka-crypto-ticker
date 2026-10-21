@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace crypto_ticker.Ingester.Models;
+namespace crypto_ticker.Kafka;
 
 public class KafkaStatistics
 {

@@ -1,10 +1,10 @@
 using System.Text.Json;
 using Confluent.Kafka;
-using crypto_ticker.Ingester.Configs;
-using crypto_ticker.Ingester.Models;
+using crypto_ticker.Contracts;
+using crypto_ticker.Kafka;
 using Microsoft.Extensions.Options;
 
-namespace crypto_ticker.Ingester.Services;
+namespace crypto_ticker.Ingester.Workers;
 
 public class Consumer : BackgroundService
 {
