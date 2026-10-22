@@ -1,8 +1,8 @@
 ﻿using System.Net.WebSockets;
 using Confluent.Kafka;
+using crypto_ticker.Ingester;
 using crypto_ticker.Ingester.Configs;
 using crypto_ticker.Ingester.Services;
-using crypto_ticker.Ingester.Workers;
 using crypto_ticker.Kafka;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -52,16 +52,17 @@ public class IngesterTest
         var ws = new FakeWebSocketConnection(cts);
         _socketFactory.SetupSequence(q => q.Create()).Returns(ws);
         
-        var producer = new Mock<IProducer<string, string>>();
+        var producer = new Mock<IProducer<string, byte[]>>();
         _producerFactory.Setup(q => q.Create()).Returns(producer.Object);
 
-        Message<string, string>? sent = null;
+        Message<string, byte[]>? sent = null;
         producer.Setup(p => 
-                p.Produce(It.IsAny<string>(), 
-                    It.IsAny<Message<string, string>>(), 
-                    It.IsAny<Action<DeliveryReport<string, string>>>()))
-            .Callback<string, Message<string, string>, 
-                Action<DeliveryReport<string, string>>>((topic, message, _) => sent = message);
+                p.Produce(
+                    It.IsAny<string>(), 
+                    It.IsAny<Message<string, byte[]>>(), 
+                    It.IsAny<Action<DeliveryReport<string, byte[]>>>()))
+            .Callback<string, Message<string, byte[]>, 
+                Action<DeliveryReport<string, byte[]>>>((topic, message, _) => sent =  message);
 
         var sut = CreateSut();
         await sut.StartAsync(cts.Token);
@@ -70,8 +71,9 @@ public class IngesterTest
         
         producer.Verify(p => p.Produce(
                 _kafkaConfig.Topic,
-                It.IsAny<Message<string, string>>(),
-                It.IsAny<Action<DeliveryReport<string, string>>>()), Times.Once);
+                It.IsAny<Message<string, byte[]>>(),
+                It.IsAny<Action<DeliveryReport<string, byte[]>>>()),
+            Times.Once);
         
         Assert.NotNull(sent);
         Assert.Contains("BNBTC", sent.Key);
@@ -95,7 +97,7 @@ public class IngesterTest
                 return healthyWs;
             });  // Second time Create is called, return healthyWs
         
-        var producer = new Mock<IProducer<string, string>>();
+        var producer = new Mock<IProducer<string, byte[]>>();
         _producerFactory.Setup(q => q.Create()).Returns(producer.Object);
         
         var sut = CreateSut();

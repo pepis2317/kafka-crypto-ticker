@@ -8,15 +8,16 @@ using crypto_ticker.Ingester.Services;
 using crypto_ticker.Kafka;
 using Microsoft.Extensions.Options;
 
-namespace crypto_ticker.Ingester.Workers;
+namespace crypto_ticker.Ingester;
 
 public class BinanceWebSocketIngester: BackgroundService
 {
     private readonly IWebSocketFactory _socketFactory;
     private readonly ILogger<BinanceWebSocketIngester> _logger;
-    private readonly IProducer<string, string> _producer;
+    private readonly IProducer<string, byte[]> _producer;
     private readonly KafkaConfiguration _kafkaConfig;
     private readonly WebSocketConfiguration _socketConfig;
+    private readonly int _retryProduceAttempts = 3;
     private int _nextId = 0;
     private int _delayCounter = 0;
 
@@ -36,6 +37,7 @@ public class BinanceWebSocketIngester: BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        _logger.LogInformation("Ingester producer started");
         while(!stoppingToken.IsCancellationRequested)
         {
             try
@@ -63,6 +65,7 @@ public class BinanceWebSocketIngester: BackgroundService
                 break;
             }
         }
+        _logger.LogInformation("Ingester producer stopped");
     }
 
     public override async Task StopAsync(CancellationToken cancellationToken)
@@ -124,32 +127,39 @@ public class BinanceWebSocketIngester: BackgroundService
         
         if(root.TryGetProperty("id", out var id))
         {
-            _logger.LogInformation("Ack for request {Id}", id.GetInt32());
+            _logger.LogInformation("Ack for request {Id}", id.ToString());
             return;
         }
 
-        if (!root.TryGetProperty("e", out var eventType) || !root.TryGetProperty("s", out var symbol)) return;
+        if (!root.TryGetProperty("e", out var eventType) || 
+            !root.TryGetProperty("s", out var symbol) ||
+            !root.TryGetProperty("T",  out var tradeTime) ||
+            !tradeTime.TryGetInt64(out var tradeTimeInt)) return;
         
         if (eventType.GetString() is not ("trade" or "aggTrade")) return;
-        
-        var message = new Message<string, string>
+        var message = new Message<string, byte[]>
         {
             Key = symbol.GetString()!,
-            Value = Encoding.UTF8.GetString(payload.Span)
+            Value = payload.ToArray(),
+            Timestamp = new Timestamp(DateTimeOffset.FromUnixTimeMilliseconds(tradeTimeInt))
         };
 
-        try
+        for(int i=0; i<_retryProduceAttempts; i++)
         {
-            _producer.Produce(_kafkaConfig.Topic, message, OnDelivery);
+            try
+            {
+                _producer.Produce(_kafkaConfig.Topic, message, OnDelivery);
+                return;
+            }
+            catch (ProduceException<string, byte[]> ex)when (ex.Error.Code == ErrorCode.Local_QueueFull && i < 5)
+            {
+                _producer.Poll(TimeSpan.FromMilliseconds(100)); 
+            }
         }
-        catch (ProduceException<string, string> ex) when (ex.Error.Code == ErrorCode.Local_QueueFull)
-        {
-            _producer.Poll(TimeSpan.FromMilliseconds(100)); 
-            _producer.Produce(_kafkaConfig.Topic, message, OnDelivery);
-        }
+        _logger.LogError("Dropped {Symbol} trade after {Attempts} attempts: producer queue full", message.Key, _retryProduceAttempts);
     }
     
-    private void OnDelivery(DeliveryReport<string, string> report)
+    private void OnDelivery(DeliveryReport<string, byte[]> report)
     {
         if(report.Error.IsError)
         {

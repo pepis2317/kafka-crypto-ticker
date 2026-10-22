@@ -13,7 +13,7 @@ public class ProducerFactory:IProducerFactory
         _kafkaConfig = kafkaOptions.Value;
     }
 
-    public IProducer<string, string> Create()
+    public IProducer<string, byte[]> Create()
     {
         var config = new ProducerConfig()
         {
@@ -25,6 +25,6 @@ public class ProducerFactory:IProducerFactory
             BatchNumMessages = 500,
             Acks = Acks.All,
         };
-        return new ProducerBuilder<string, string>(config).Build();
+        return new ProducerBuilder<string, byte[]>(config).Build();
     }
 }
