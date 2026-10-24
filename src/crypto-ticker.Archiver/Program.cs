@@ -37,6 +37,8 @@ builder.Services.AddSingleton<IAmazonS3>(provider =>
 });
 
 builder.Services.AddSingleton<IRustFsService, RustFsService>();
+builder.Services.AddSingleton<IAggregateTradeSink, AggregateTradeSink>();
+builder.Services.AddSingleton<IArchiveAggregateTradeService, ArchiveAggregateTradeService>();
 builder.Services.AddSingleton<IConsumerFactory, ConsumerFactory>();
 builder.Services.AddHostedService<TradeArchiver>();
 var host = builder.Build();

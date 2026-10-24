@@ -25,13 +25,13 @@ public class BinanceWebSocketIngester: BackgroundService
         IWebSocketFactory socketFactory,
         IProducerFactory producerFactory,
         ILogger<BinanceWebSocketIngester> logger,
-        IOptions<KafkaConfiguration> kafkaOptions,
-        IOptions<WebSocketConfiguration> socketOptions)
+        IOptions<WebSocketConfiguration> socketOptions, 
+        IOptions<KafkaConfiguration> kafkaOptions)
     {
         _socketFactory = socketFactory;
         _logger = logger;
-        _socketConfig = socketOptions.Value;
         _kafkaConfig = kafkaOptions.Value;
+        _socketConfig = socketOptions.Value;
         _producer = producerFactory.Create();
     }
 
@@ -136,7 +136,7 @@ public class BinanceWebSocketIngester: BackgroundService
             !root.TryGetProperty("T",  out var tradeTime) ||
             !tradeTime.TryGetInt64(out var tradeTimeInt)) return;
         
-        if (eventType.GetString() is not ("trade" or "aggTrade")) return;
+        if (!_kafkaConfig.Topics.Contains(eventType.GetString()!)) return;
         var message = new Message<string, byte[]>
         {
             Key = symbol.GetString()!,
@@ -148,10 +148,10 @@ public class BinanceWebSocketIngester: BackgroundService
         {
             try
             {
-                _producer.Produce(_kafkaConfig.Topic, message, OnDelivery);
+                _producer.Produce(eventType.GetString(), message, OnDelivery);
                 return;
             }
-            catch (ProduceException<string, byte[]> ex)when (ex.Error.Code == ErrorCode.Local_QueueFull && i < 5)
+            catch (ProduceException<string, byte[]> ex) when (ex.Error.Code == ErrorCode.Local_QueueFull && i < 5)
             {
                 _producer.Poll(TimeSpan.FromMilliseconds(100)); 
             }

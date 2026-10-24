@@ -1,40 +1,34 @@
-using System.Text;
 using System.Text.Json;
-using Apache.Arrow;
 using Confluent.Kafka;
-using crypto_ticker.Kafka;
-using Microsoft.Extensions.Options;
 
 namespace crypto_ticker.Archiver;
 
 public class TradeArchiver:BackgroundService
 {
-    private readonly IRustFsService _rustFsService;
+    private readonly IArchiveAggregateTradeService _archiveAggregateTradeService;
     private readonly IConsumer<string, byte[]> _consumer;
     private readonly ILogger<TradeArchiver> _logger;
-    private readonly KafkaConfiguration _kafkaConfig;
+    private const string EventType = "aggTrade";
 
     public TradeArchiver(
-        IRustFsService rustFsService,
+        IArchiveAggregateTradeService archiveAggregateTradeService,
         IConsumerFactory consumerFactory, 
-        ILogger<TradeArchiver> logger, 
-        IOptions<KafkaConfiguration> kafkaOptions)
+        ILogger<TradeArchiver> logger)
     {
+        _archiveAggregateTradeService = archiveAggregateTradeService;
         _consumer = consumerFactory.Create();
         _logger = logger;
-        _rustFsService = rustFsService;
-        _kafkaConfig = kafkaOptions.Value;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _consumer.Subscribe(_kafkaConfig.Topic);
+        _consumer.Subscribe(EventType);
         _logger.LogInformation("Archive consumer started");
         while(!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                ArchiveMessageAsync(stoppingToken);
+                await ArchiveMessageAsync(stoppingToken);
             }
             catch(OperationCanceledException) when(stoppingToken.IsCancellationRequested)
             {
@@ -59,14 +53,8 @@ public class TradeArchiver:BackgroundService
         _consumer.Dispose();
         base.Dispose();
     }
-    
-    private void ArchiveTrade(byte[] message, CancellationToken stoppingToken)
-    {
-        
-        
-    }
 
-    private void ArchiveMessageAsync(CancellationToken cancellationToken)
+    private async Task ArchiveMessageAsync(CancellationToken cancellationToken)
     {
         var result = _consumer.Consume(cancellationToken);
         if (result.Message == null) return;
@@ -80,16 +68,8 @@ public class TradeArchiver:BackgroundService
             }
             else
             {
-                switch (eventType.GetString())
-                {
-                    case "trade":    
-                        break;
-                    case "aggTrade":
-                        break;
-                    default:
-                        _logger.LogWarning("Unknown event type {Type}", eventType.GetString());
-                        break;
-                }
+                if(_archiveAggregateTradeService.ShouldFlush()) await _archiveAggregateTradeService.Flush(_consumer);
+                _archiveAggregateTradeService.Handle(result);
             }
 
         }

@@ -14,7 +14,7 @@ builder.Services.Configure <WebSocketConfiguration>(
 builder.Services.AddSingleton<IWebSocketFactory, ClientWebSocketFactory>();
 builder.Services.AddSingleton<IProducerFactory, ProducerFactory>();
 
-builder.Services.AddHostedService<TopicInitializer>();
+builder.Services.AddHostedService<TopicsInitializer>();
 builder.Services.AddHostedService<BinanceWebSocketIngester>();
 
 var host = builder.Build();

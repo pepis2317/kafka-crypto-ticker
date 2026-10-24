@@ -21,7 +21,7 @@ public class IngesterTest
         NumPartitions = 3,
         ReplicationFactor = 1,
         Brokers = "localhost:5555",
-        Topic = "test-topic",
+        Topics = ["test-topic-1","test-topic-2"],
         ConsumerGroup = "test-consumer-group"
     };
     
@@ -41,8 +41,8 @@ public class IngesterTest
             _socketFactory.Object,
             _producerFactory.Object,
             new NullLogger<BinanceWebSocketIngester>(),
-            Options.Create(_kafkaConfig),
-            Options.Create(_socketConfig));
+            Options.Create(_socketConfig),
+            Options.Create(_kafkaConfig));
     }
     
     [Fact]
@@ -70,7 +70,7 @@ public class IngesterTest
         await sut.StopAsync(CancellationToken.None);
         
         producer.Verify(p => p.Produce(
-                _kafkaConfig.Topic,
+                "test-topic-1",
                 It.IsAny<Message<string, byte[]>>(),
                 It.IsAny<Action<DeliveryReport<string, byte[]>>>()),
             Times.Once);

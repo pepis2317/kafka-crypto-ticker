@@ -1,8 +1,6 @@
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
-using Confluent.Kafka;
-using crypto_ticker.Contracts;
 using crypto_ticker.Ingester.Services;
 
 namespace tests;
@@ -60,7 +58,7 @@ public class FakeWebSocketConnection : IWebSocketConnection
         {
             var payload = new
             {
-                e = "trade",
+                e = "test-topic-1",
                 E = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 s = "BNBTC",
                 t = 12345,
