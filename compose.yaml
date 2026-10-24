@@ -1,4 +1,17 @@
 ﻿services:
+  db:
+    image: postgres:18
+    container_name: postgres-dev
+    secrets:
+      - postgres_password
+    environment:
+      POSTGRES_DB: candlestick_archiver
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+  
   rustfs_perms:
     image: alpine
     user: root
@@ -89,7 +102,12 @@
       context: .
       dockerfile: src/crypto-ticker.PriceService/Dockerfile
 secrets:
+  postgres_password:
+    file: ./secrets/postgres_password
   rustfs_access_key:
     file: ./secrets/rustfs_access_key
   rustfs_secret_key:
     file: ./secrets/rustfs_secret_key
+    
+volumes:
+  postgres_data:

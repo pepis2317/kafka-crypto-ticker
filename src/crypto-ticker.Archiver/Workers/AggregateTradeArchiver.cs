@@ -23,7 +23,7 @@ public class AggregateTradeArchiver:BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _consumer.Subscribe(EventType);
-        _logger.LogInformation("Archive consumer started");
+        _logger.LogInformation("AggTrade archive consumer started");
         while(!stoppingToken.IsCancellationRequested)
         {
             try
@@ -36,10 +36,10 @@ public class AggregateTradeArchiver:BackgroundService
             }
             catch(ConsumeException ex)
             {
-                _logger.LogError(ex, "Archive consumer error. Retrying" );
+                _logger.LogError(ex, "AggTrade archive consumer error. Retrying" );
             }
         }
-        _logger.LogInformation("Archive consumer stopped");
+        _logger.LogInformation("AggTrade archive consumer stopped");
     }
 
     public override async Task StopAsync(CancellationToken cancellationToken)

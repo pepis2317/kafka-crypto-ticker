@@ -10,12 +10,25 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.13" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.13" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.Design" Version="1.1.0" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="..\..\.dockerignore">
       <Link>.dockerignore</Link>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\crypto-ticker.Kafka\crypto-ticker.Kafka.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Confluent.Kafka">
+      <HintPath>..\..\..\..\.nuget\packages\confluent.kafka\2.16.0\lib\net10.0\Confluent.Kafka.dll</HintPath>
+    </Reference>
   </ItemGroup>
 </Project>
