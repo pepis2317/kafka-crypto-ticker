@@ -14,4 +14,6 @@ public interface IRustFsService
     Task<Stream> GetFileAsync(string bucketName, string key);
     Task<bool> DeleteFileAsync(string bucketName, string key);
     Task<IEnumerable<string>> ListFilesAsync(string bucketName);
+    Task<IEnumerable<string>> ListFilesToCompact(string bucketName, string prefix, DateTime maxDateTime, long maxSize);
+    Task<bool> PrefixExistsAsync(string bucketName, string prefix);
 }

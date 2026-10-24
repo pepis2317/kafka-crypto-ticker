@@ -42,16 +42,19 @@ public class RustFsService : IRustFsService
     public async Task<bool> DeleteBucketAsync(string bucketName)
     {
         var files = await ListFilesAsync(bucketName);
-        var enumerable = files as string[] ?? files.ToArray();
-        if(enumerable.Any())
+        foreach(var chunk in files.Chunk(1000))
         {
-            var deleteObjectsRequest = new DeleteObjectsRequest
+            var deleteResponse = await _s3Client.DeleteObjectsAsync(
+                new DeleteObjectsRequest
+                {
+                    BucketName = bucketName,
+                    Objects = chunk.Select(k => new KeyVersion { Key = k }).ToList(),
+                    Quiet = true
+                });
+            if(deleteResponse.DeleteErrors?.Count > 0)
             {
-                BucketName = bucketName,
-                Objects = enumerable.Select(k => new KeyVersion { Key = k }).ToList()
-            };
-
-            await _s3Client.DeleteObjectsAsync(deleteObjectsRequest);
+                throw new InvalidOperationException($"Failed to delete {deleteResponse.DeleteErrors.Count} objects, first: {deleteResponse.DeleteErrors[0].Key}");
+            }
         }
 
         var deleteBucketRequest = new DeleteBucketRequest
@@ -149,12 +152,74 @@ public class RustFsService : IRustFsService
             return Enumerable.Empty<string>();
         }
 
+        var results = new List<string>();
         var request = new ListObjectsV2Request
         {
-            BucketName = bucketName
+            BucketName = bucketName,
+        };
+
+        ListObjectsV2Response response;
+        do
+        {
+            response = await _s3Client.ListObjectsV2Async(request);
+            if (response.S3Objects != null)
+            {
+                results.AddRange(response.S3Objects.Select(q=>q.Key));
+            }
+
+            request.ContinuationToken = response.NextContinuationToken;
+        } while (response.IsTruncated == true);
+
+        return results;
+    }
+    
+    public async Task<IEnumerable<string>> ListFilesToCompact(
+        string bucketName, 
+        string prefix, 
+        DateTime maxDateTime,
+        long maxSize)
+    {
+        if (!await BucketExistsAsync(bucketName))
+        {
+            return Enumerable.Empty<string>();
+        }
+
+        var results = new List<string>();
+
+        var request = new ListObjectsV2Request
+        {
+            BucketName = bucketName,
+            Prefix = prefix
+        };
+        
+        ListObjectsV2Response response;
+        do
+        {
+            response = await _s3Client.ListObjectsV2Async(request);
+
+            if (response.S3Objects != null)
+            {
+                results.AddRange(response.S3Objects
+                    .Where(o => o.LastModified <= maxDateTime && o.Size < maxSize)
+                    .Select(o => o.Key));
+            }
+
+            request.ContinuationToken = response.NextContinuationToken;
+        } while (response.IsTruncated == true);
+
+        return results.OrderBy(q=>q, StringComparer.Ordinal);
+    }
+
+    public async Task<bool> PrefixExistsAsync(string bucketName, string prefix)
+    {
+        var request = new ListObjectsV2Request
+        {
+            BucketName = bucketName,
+            Prefix = prefix,
+            MaxKeys = 1
         };
 
         var response = await _s3Client.ListObjectsV2Async(request);
-        return response.S3Objects?.Select(o => o.Key) ?? Enumerable.Empty<string>();
+        return response.KeyCount > 0;
     }
 }

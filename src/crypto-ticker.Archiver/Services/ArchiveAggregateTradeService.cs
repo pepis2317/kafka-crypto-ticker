@@ -1,26 +1,34 @@
 using System.Text.Json;
+using System.Xml.Schema;
 using Confluent.Kafka;
 using crypto_ticker.Contracts;
+using Microsoft.Extensions.Options;
 
 namespace crypto_ticker.Archiver;
 
 public class ArchiveAggregateTradeService : IArchiveAggregateTradeService
 {
-    private const int MaxBatch = 10000;
-    private static readonly TimeSpan MaxAge = TimeSpan.FromSeconds(5);
-
     private readonly IAggregateTradeSink _sink;
     private readonly ILogger<ArchiveAggregateTradeService> _logger;
 
-    private readonly List<AggregateTradeStream> _buffer = new(MaxBatch);
+    private readonly int _maxBatch;
+    private readonly int _maxAgeMinutes;
+    private readonly List<AggregateTradeStream> _buffer;
     private readonly Dictionary<string, long> _lastAggregateTradeId = new();
     private readonly Dictionary<TopicPartition, Offset> _highestOffsets = new();
     private DateTime _batchStartedUtc = DateTime.UtcNow;
 
-    public ArchiveAggregateTradeService(IAggregateTradeSink sink, ILogger<ArchiveAggregateTradeService> logger)
+    public ArchiveAggregateTradeService(
+        IAggregateTradeSink sink, 
+        IOptions<ArchiverConfiguration> configOptions,
+        ILogger<ArchiveAggregateTradeService> logger)
     {
         _sink = sink;
         _logger = logger;
+        var config = configOptions.Value;
+        _buffer = new(config.MaxBatch);
+        _maxBatch = config.MaxBatch;
+        _maxAgeMinutes = config.MaxAgeMinutes;
     }
     
     public void Handle(ConsumeResult<string, byte[]> result)
@@ -64,8 +72,8 @@ public class ArchiveAggregateTradeService : IArchiveAggregateTradeService
     
     public bool ShouldFlush()
     {
-        var exceedMaxBatch = _buffer.Count >= MaxBatch;
-        var exceedMaxAge = _buffer.Count > 0 && DateTime.UtcNow -  _batchStartedUtc >= MaxAge;
+        var exceedMaxBatch = _buffer.Count >= _maxBatch;
+        var exceedMaxAge = _buffer.Count > 0 && DateTime.UtcNow -  _batchStartedUtc >= TimeSpan.FromMinutes(_maxAgeMinutes);
         return exceedMaxBatch || exceedMaxAge;
     }
     
@@ -82,6 +90,7 @@ public class ArchiveAggregateTradeService : IArchiveAggregateTradeService
             // stores the next message to read in memory
             consumer.StoreOffset(new TopicPartitionOffset(topicPartition, offset + 1));
         }
+        consumer.Commit();
         _highestOffsets.Clear();
     }
 }

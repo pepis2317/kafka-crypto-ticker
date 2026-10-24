@@ -9,6 +9,10 @@ using Microsoft.Extensions.Options;
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.Configure<KafkaConfiguration>(
     builder.Configuration.GetSection("KafkaConfiguration"));
+builder.Services.Configure<ArchiverConfiguration>(
+    builder.Configuration.GetSection("ArchiverConfiguration"));
+builder.Services.Configure<CompactorConfiguration>(
+    builder.Configuration.GetSection("CompactorConfiguration"));
 builder.Services.Configure<S3StorageOptions>(
     builder.Configuration.GetSection("S3StorageOptions"));
 
@@ -41,5 +45,7 @@ builder.Services.AddSingleton<IAggregateTradeSink, AggregateTradeSink>();
 builder.Services.AddSingleton<IArchiveAggregateTradeService, ArchiveAggregateTradeService>();
 builder.Services.AddSingleton<IConsumerFactory, ConsumerFactory>();
 builder.Services.AddHostedService<AggregateTradeArchiver>();
+builder.Services.AddHostedService<AggregrateTradeCompactor>();
+
 var host = builder.Build();
 host.Run();

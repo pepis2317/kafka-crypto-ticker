@@ -23,7 +23,6 @@ public class ConsumerFactory:IConsumerFactory
             BootstrapServers = _kafkaConfig.Brokers,
             GroupId = _kafkaConfig.ConsumerGroup,
             SecurityProtocol = SecurityProtocol.Plaintext,
-            EnableAutoCommit = true,
             EnableAutoOffsetStore = false,
             StatisticsIntervalMs = 5000,
             SessionTimeoutMs = 6000,
