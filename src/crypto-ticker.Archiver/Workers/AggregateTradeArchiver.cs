@@ -3,17 +3,17 @@ using Confluent.Kafka;
 
 namespace crypto_ticker.Archiver;
 
-public class TradeArchiver:BackgroundService
+public class AggregateTradeArchiver:BackgroundService
 {
     private readonly IArchiveAggregateTradeService _archiveAggregateTradeService;
     private readonly IConsumer<string, byte[]> _consumer;
-    private readonly ILogger<TradeArchiver> _logger;
+    private readonly ILogger<AggregateTradeArchiver> _logger;
     private const string EventType = "aggTrade";
 
-    public TradeArchiver(
+    public AggregateTradeArchiver(
         IArchiveAggregateTradeService archiveAggregateTradeService,
         IConsumerFactory consumerFactory, 
-        ILogger<TradeArchiver> logger)
+        ILogger<AggregateTradeArchiver> logger)
     {
         _archiveAggregateTradeService = archiveAggregateTradeService;
         _consumer = consumerFactory.Create();
