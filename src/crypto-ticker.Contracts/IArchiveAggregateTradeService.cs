@@ -1,7 +1,6 @@
 using Confluent.Kafka;
-using crypto_ticker.Contracts;
 
-namespace crypto_ticker.Archiver;
+namespace crypto_ticker.Contracts;
 
 public interface IArchiveAggregateTradeService
 {

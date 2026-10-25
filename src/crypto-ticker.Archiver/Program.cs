@@ -3,6 +3,7 @@ using Amazon.Runtime;
 using Amazon.S3;
 using crypto_ticker.Archiver;
 using crypto_ticker.Archiver.Models;
+using crypto_ticker.Contracts;
 using crypto_ticker.Kafka;
 using Microsoft.Extensions.Options;
 

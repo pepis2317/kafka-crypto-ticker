@@ -1,6 +1,6 @@
 using Confluent.Kafka;
 
-namespace crypto_ticker.Archiver;
+namespace crypto_ticker.Kafka;
 
 public interface IConsumerFactory
 {

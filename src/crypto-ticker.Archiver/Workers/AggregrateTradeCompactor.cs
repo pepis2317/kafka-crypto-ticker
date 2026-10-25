@@ -69,7 +69,6 @@ public class AggregrateTradeCompactor : BackgroundService
     
     private async Task CompactFiles(DateTime date)
     {
-        //this should only run if the eventdatesymbolkey exists
         var dateString = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         var datePrefix = $"{EventType}/date={dateString}/";
         

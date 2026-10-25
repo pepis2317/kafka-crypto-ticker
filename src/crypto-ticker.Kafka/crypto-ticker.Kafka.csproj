@@ -12,4 +12,8 @@
     <PackageReference Include="Confluent.Kafka" Version="2.16.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\crypto-ticker.Contracts\crypto-ticker.Contracts.csproj" />
+  </ItemGroup>
+
 </Project>

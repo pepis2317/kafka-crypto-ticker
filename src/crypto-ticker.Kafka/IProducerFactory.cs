@@ -1,6 +1,6 @@
 using Confluent.Kafka;
 
-namespace crypto_ticker.Ingester.Services;
+namespace crypto_ticker.Kafka;
 
 public interface IProducerFactory
 {

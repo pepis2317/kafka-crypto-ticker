@@ -1,7 +1,7 @@
 using System.Text.Json;
-using System.Xml.Schema;
 using Confluent.Kafka;
 using crypto_ticker.Contracts;
+using crypto_ticker.Kafka;
 using Microsoft.Extensions.Options;
 
 namespace crypto_ticker.Archiver;

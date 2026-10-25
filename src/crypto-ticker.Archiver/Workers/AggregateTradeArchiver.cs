@@ -1,5 +1,7 @@
 using System.Text.Json;
 using Confluent.Kafka;
+using crypto_ticker.Contracts;
+using crypto_ticker.Kafka;
 
 namespace crypto_ticker.Archiver;
 
@@ -71,7 +73,6 @@ public class AggregateTradeArchiver:BackgroundService
                 if(_archiveAggregateTradeService.ShouldFlush()) await _archiveAggregateTradeService.Flush(_consumer);
                 _archiveAggregateTradeService.Handle(result);
             }
-
         }
         catch(JsonException ex)
         {

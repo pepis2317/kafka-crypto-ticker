@@ -29,6 +29,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\crypto-ticker.Candles\crypto-ticker.Candles.csproj" />
     <ProjectReference Include="..\crypto-ticker.Contracts\crypto-ticker.Contracts.csproj" />
     <ProjectReference Include="..\crypto-ticker.Kafka\crypto-ticker.Kafka.csproj" />
   </ItemGroup>

@@ -1,6 +1,7 @@
 using System.Globalization;
 using crypto_ticker.Archiver.Models;
 using crypto_ticker.Contracts;
+using crypto_ticker.Kafka;
 using ParquetSharp;
 
 namespace crypto_ticker.Archiver;

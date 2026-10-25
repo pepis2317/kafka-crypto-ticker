@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Confluent.Kafka;
-using crypto_ticker.Archiver;
 using crypto_ticker.Kafka;
 using Microsoft.Extensions.Options;
 
