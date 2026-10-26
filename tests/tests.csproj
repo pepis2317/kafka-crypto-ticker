@@ -21,7 +21,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\src\crypto-ticker.Archiver\crypto-ticker.Archiver.csproj" />
+      <ProjectReference Include="..\src\crypto-ticker.AggTradeArchiver\crypto-ticker.AggTradeArchiver.csproj" />
       <ProjectReference Include="..\src\crypto-ticker.Ingester\crypto-ticker.Ingester.csproj" />
     </ItemGroup>
 

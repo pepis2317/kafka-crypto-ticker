@@ -1,0 +1,6 @@
+@CandlestickApi_HostAddress = http://localhost:5240
+
+GET {{CandlestickApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

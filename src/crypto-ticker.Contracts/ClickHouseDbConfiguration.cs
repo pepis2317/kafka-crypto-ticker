@@ -1,4 +1,4 @@
-namespace crypto_ticker.CandleService;
+namespace crypto_ticker.Contracts;
 
 public class ClickHouseDbConfiguration
 {

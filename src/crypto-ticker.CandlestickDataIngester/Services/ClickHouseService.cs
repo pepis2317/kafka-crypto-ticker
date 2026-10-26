@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using ClickHouse.Driver;
 using ClickHouse.Driver.Tcp;
+using crypto_ticker.Contracts;
 using Microsoft.Extensions.Options;
 
 namespace crypto_ticker.CandleService;
