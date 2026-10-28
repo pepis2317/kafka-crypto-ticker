@@ -24,5 +24,8 @@ public class AggregateTradeStream
     public DateTimeOffset TradeTime { get; set; }
     
     [JsonPropertyName("m")] public bool IsBuyerMarketMaker { get; set; }
+    
+    public int Partition { get; set; }
+    public long Offset { get; set; }
     public override string ToString() => JsonSerializer.Serialize(this);
 }

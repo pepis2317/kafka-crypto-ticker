@@ -21,6 +21,8 @@ public class ClickHouseService: IClickHouseService
         "last_trade_id",
         "trade_time",
         "is_buyer_maker",
+        "partition",
+        "offset"
     };
 
     public ClickHouseService(IOptions<ClickHouseDbConfiguration> options, ILogger<ClickHouseService> logger)
@@ -48,7 +50,9 @@ public class ClickHouseService: IClickHouseService
                                first_trade_id       UInt64,
                                last_trade_id        UInt64,
                                trade_time           DateTime64(3, 'UTC'),
-                               is_buyer_maker       Bool
+                               is_buyer_maker       Bool,
+                               partition            UInt16,
+                               offset               UInt64
                            )
                            ENGINE = ReplacingMergeTree
                            PARTITION BY toYYYYMM(trade_time)

@@ -37,6 +37,8 @@ public class ArchiveAggregateTradeService : IArchiveAggregateTradeService
         try
         {
             aggTrade = JsonSerializer.Deserialize<AggregateTradeStream>(result.Message.Value);
+            aggTrade?.Partition = result.TopicPartition.Partition.Value;
+            aggTrade?.Offset = result.Offset;
         }
         catch(JsonException ex)
         {

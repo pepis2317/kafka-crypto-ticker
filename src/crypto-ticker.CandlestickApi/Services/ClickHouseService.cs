@@ -51,10 +51,8 @@ public class ClickHouseService:IClickHouseService
         var query = """
                     SELECT
                         t.symbol,
-                        fromUnixTimestamp64Milli(
-                            toUnixTimestamp64Milli(t.trade_time) - (toUnixTimestamp64Milli(t.trade_time) % {intervalMilli:Int64}),
-                            'UTC'
-                        ) AS interval_bucket,
+                        fromUnixTimestamp64Milli(toUnixTimestamp64Milli(t.trade_time) - (toUnixTimestamp64Milli(t.trade_time) % {intervalMilli:Int64}), 'UTC') as start_time,
+                        fromUnixTimestamp64Milli(toUnixTimestamp64Milli(start_time) + {intervalMilli:Int64}, 'UTC') as close_time,
                         argMin(t.price, t.trade_time) AS open,
                         max(t.price) AS high,
                         min(t.price) AS low,
@@ -63,24 +61,35 @@ public class ClickHouseService:IClickHouseService
                         count() AS trades
                     FROM aggregate_trade_data.aggregate_trades t
                     WHERE t.symbol = {symbol:String}
-                    GROUP BY t.symbol, interval_bucket
-                    ORDER BY interval_bucket DESC
+                    GROUP BY t.symbol, start_time
+                    ORDER BY start_time DESC
                     LIMIT {pageSize:UInt32} OFFSET {offset:UInt32}
                     """;
         var reader = await _client.ExecuteReaderAsync(query, parameters);
         var candlesticks = new List<Candlestick>();
         while(reader.Read())
         {
+            var candleSymbol = reader.GetString(0);
+            var candleStartTime = reader.GetDateTime(1);
+            var candleCloseTime = reader.GetDateTime(2);
+            var candleOpen = reader.GetDecimal(3);
+            var candleHigh = reader.GetDecimal(4);
+            var candleLow = reader.GetDecimal(5);
+            var candleClose = reader.GetDecimal(6);
+            var candleVolume = reader.GetDecimal(7);
+            var candleTrades = reader.GetUInt64(8);
             var candlestick = new Candlestick
             {
-                Symbol = reader.GetString(0),
-                IntervalBucket = reader.GetDateTime(1),
-                Open = reader.GetDecimal(2),
-                High = reader.GetDecimal(3),
-                Low = reader.GetDecimal(4),
-                Close = reader.GetDecimal(5),
-                Volume = reader.GetDecimal(6),
-                Trades = reader.GetUInt64(7)
+                Symbol = candleSymbol,
+                StartTime = candleStartTime,
+                CloseTime = candleCloseTime,
+                Open = candleOpen,
+                High = candleHigh,
+                Low = candleLow,
+                Close = candleClose,
+                Volume = candleVolume,
+                Trades = candleTrades,
+                IsClosed = candleCloseTime < DateTime.UtcNow
             };
             candlesticks.Add(candlestick);
         }
@@ -93,9 +102,12 @@ public class ClickHouseService:IClickHouseService
         var exists = Convert.ToInt32(checkResult) == 1;
         if (!exists) return [];
         
-        var bucketExpr = isYearly
+        var openExpr = isYearly
             ? "toStartOfYear(t.trade_time)"
             : "toStartOfMonth(t.trade_time)";
+        var closeExpr = isYearly
+            ? "addYears(start_time, 1)"
+            : "addMonths(start_time, 1)";
         var parameters = new ClickHouseParameterCollection();
         parameters.AddParameter("symbol", symbol);
         parameters.AddParameter("pageSize", pageSize);
@@ -104,7 +116,8 @@ public class ClickHouseService:IClickHouseService
         var query = $$"""
                       SELECT
                           t.symbol,
-                          toDateTime({{bucketExpr}}, 'UTC') AS interval_bucket,
+                          toDateTime({{openExpr}}, 'UTC') AS start_time,
+                          {{closeExpr}} AS close_time,
                           argMin(t.price, t.trade_time) AS open,
                           max(t.price) AS high,
                           min(t.price) AS low,
@@ -113,8 +126,8 @@ public class ClickHouseService:IClickHouseService
                           count() AS trades
                       FROM aggregate_trade_data.aggregate_trades t
                       WHERE t.symbol = {symbol:String}
-                      GROUP BY t.symbol, interval_bucket
-                      ORDER BY interval_bucket DESC
+                      GROUP BY t.symbol, start_time
+                      ORDER BY start_time DESC
                       LIMIT {pageSize:UInt32} OFFSET {offset:UInt32}
                       """;
         
@@ -122,19 +135,58 @@ public class ClickHouseService:IClickHouseService
         var candlesticks = new List<Candlestick>();
         while(reader.Read())
         {
+            var candleSymbol = reader.GetString(0);
+            var candleStartTime = reader.GetDateTime(1);
+            var candleCloseTime = reader.GetDateTime(2);
+            var candleOpen = reader.GetDecimal(3);
+            var candleHigh = reader.GetDecimal(4);
+            var candleLow = reader.GetDecimal(5);
+            var candleClose = reader.GetDecimal(6);
+            var candleVolume = reader.GetDecimal(7);
+            var candleTrades = reader.GetUInt64(8);
             var candlestick = new Candlestick
             {
-                Symbol = reader.GetString(0),
-                IntervalBucket = reader.GetDateTime(1),
-                Open = reader.GetDecimal(2),
-                High = reader.GetDecimal(3),
-                Low = reader.GetDecimal(4),
-                Close = reader.GetDecimal(5),
-                Volume = reader.GetDecimal(6),
-                Trades = reader.GetUInt64(7)
+                Symbol = candleSymbol,
+                StartTime = candleStartTime,
+                CloseTime = candleCloseTime,
+                Open = candleOpen,
+                High = candleHigh,
+                Low = candleLow,
+                Close = candleClose,
+                Volume = candleVolume,
+                Trades = candleTrades,
+                IsClosed = candleCloseTime < DateTime.UtcNow
             };
             candlesticks.Add(candlestick);
         }
         return candlesticks;
+    }
+
+    public async Task<List<OffsetPerSymbolPartition>> QueryHighestOffsetPerSymbolPartition()
+    {
+        var checkResult = await _client.ExecuteScalarAsync("EXISTS TABLE aggregate_trade_data.aggregate_trades");
+        var exists = Convert.ToInt32(checkResult) == 1;
+        if (!exists) return [];
+
+        var query = """
+                    SELECT t.symbol, t."partition", MAX(t."offset")
+                    FROM aggregate_trade_data.aggregate_trades t
+                    GROUP BY t.symbol, t."partition"
+                    """;
+
+        var reader = await _client.ExecuteReaderAsync(query);
+        var result = new List<OffsetPerSymbolPartition>();
+        while(reader.Read())
+        {
+            var row = new OffsetPerSymbolPartition
+            {
+                Symbol = reader.GetString(0),
+                Partition = reader.GetInt16(1),
+                Offset = reader.GetUInt64(2)
+            };
+            result.Add(row);
+        }
+        
+        return result;
     }
 }

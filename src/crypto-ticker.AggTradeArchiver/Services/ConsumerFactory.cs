@@ -24,6 +24,7 @@ public class ConsumerFactory:IConsumerFactory
             GroupId = _kafkaConfig.ConsumerGroup,
             SecurityProtocol = SecurityProtocol.Plaintext,
             EnableAutoOffsetStore = false,
+            EnableAutoCommit = false,
             StatisticsIntervalMs = 5000,
             SessionTimeoutMs = 6000,
             AutoOffsetReset = AutoOffsetReset.Earliest,
@@ -34,6 +35,7 @@ public class ConsumerFactory:IConsumerFactory
             .SetErrorHandler((_, e) => LogKafkaError(e)).Build();
         return consumer;
     }
+    
     private void LogKafkaStats(string kafkaStatistics)
     {
         var stats = JsonSerializer.Deserialize<KafkaStatistics>(kafkaStatistics);

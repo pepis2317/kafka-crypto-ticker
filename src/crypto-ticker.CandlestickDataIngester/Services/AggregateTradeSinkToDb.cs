@@ -24,7 +24,9 @@ public class AggregateTradeSinkToDb:IAggregateTradeSink
             q.FirstTradeId,
             q.LastTradeId,
             q.TradeTime,
-            q.IsBuyerMarketMaker
+            q.IsBuyerMarketMaker,
+            q.Partition,
+            q.Offset
         });
         
         await _chService.BulkInsertToAggTrades(objects);

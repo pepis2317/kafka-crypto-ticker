@@ -17,7 +17,9 @@ public class AggregateTradeSink:IAggregateTradeSink
         new Column<long>("FirstTradeId"),
         new Column<long>("LastTradeId"),
         new Column<DateTime>("TradeTime"),
-        new Column<bool>("IsBuyerMarketMaker")
+        new Column<bool>("IsBuyerMarketMaker"),
+        new Column<int>("Partition"),
+        new Column<long>("Offset")
     ];
     
     private readonly IRustFsService _rustFsService;
@@ -123,6 +125,16 @@ public class AggregateTradeSink:IAggregateTradeSink
             using (var w = rowGroup.NextColumn().LogicalWriter<bool>())
             {
                 w.WriteBatch(buffer.Select(q => q.IsBuyerMarketMaker).ToArray());
+            }
+            
+            using (var w = rowGroup.NextColumn().LogicalWriter<int>())
+            {
+                w.WriteBatch(buffer.Select(q => q.Partition).ToArray());
+            }
+            
+            using (var w = rowGroup.NextColumn().LogicalWriter<long>())
+            {
+                w.WriteBatch(buffer.Select(q => q.Offset).ToArray());
             }
         }
         file.Close();
