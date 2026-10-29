@@ -212,6 +212,10 @@ public class RustFsService : IRustFsService
 
     public async Task<bool> PrefixExistsAsync(string bucketName, string prefix)
     {
+        if(!await BucketExistsAsync(bucketName))
+        {
+            await CreateBucketAsync(bucketName);
+        }
         var request = new ListObjectsV2Request
         {
             BucketName = bucketName,
