@@ -2,6 +2,7 @@ using System.Text.Json;
 using Confluent.Kafka;
 using crypto_ticker.Contracts;
 using crypto_ticker.Kafka;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 
 namespace CandlestickApi;
@@ -9,24 +10,29 @@ namespace CandlestickApi;
 public class AggregateTradeConsumer : BackgroundService
 {
     private readonly IConsumer<string, byte[]> _consumer;
-    private readonly IClickHouseService _chService;
     private readonly ILogger<AggregateTradeConsumer> _logger;
-    private readonly Dictionary<string, Candlestick> _candleStates = new();
+    private readonly List<IntervalAggregateHelper> _intervals;
     private readonly Dictionary<string, long> _lastTradeIds = new();
     private const string EventType = "aggTrade";
 
-    public AggregateTradeConsumer(
-        IConsumerFactory consumerFactory,
-        ILogger<AggregateTradeConsumer> logger,
-        IClickHouseService chService)
+    public AggregateTradeConsumer(IConsumerFactory consumerFactory, ILogger<AggregateTradeConsumer> logger, IHubContext<CandlestickHub> hub)
     {
         _consumer = consumerFactory.Create();
         _logger = logger;
-        _chService = chService;
+        _intervals =
+        [
+            new IntervalAggregateHelper(hub, 1),
+            new IntervalAggregateHelper(hub, 5),
+            new IntervalAggregateHelper(hub, 10),
+            new IntervalAggregateHelper(hub, 15),
+            new IntervalAggregateHelper(hub, 30),
+            new IntervalAggregateHelper(hub, 60)
+        ];
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await Task.Yield();
         _consumer.Subscribe(EventType);
         _logger.LogInformation("AggTrade consumer started");
 
@@ -34,8 +40,7 @@ public class AggregateTradeConsumer : BackgroundService
         {
             try
             {
-                ConsumeMessages(stoppingToken);
-                if (!_candleStates.TryGetValue("BTCUSDT", out var candleState)) continue;
+                await ConsumeMessages();
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -62,7 +67,7 @@ public class AggregateTradeConsumer : BackgroundService
         base.Dispose();
     }
 
-    private void ConsumeMessages(CancellationToken cancellationToken)
+    private async Task ConsumeMessages()
     {
         var result = _consumer.Consume(TimeSpan.FromMilliseconds(200));
         if (result?.Message == null) return;
@@ -76,7 +81,7 @@ public class AggregateTradeConsumer : BackgroundService
             }
             else
             {
-                UpdateCandleState(result);
+                await UpdateCandleState(result);
             }
         }
         catch (JsonException ex)
@@ -88,7 +93,7 @@ public class AggregateTradeConsumer : BackgroundService
         _consumer.Commit();
     }
 
-    private void UpdateCandleState(ConsumeResult<string, byte[]> result)
+    private async Task UpdateCandleState(ConsumeResult<string, byte[]> result)
     {
         AggregateTradeStream? trade;
         try
@@ -108,59 +113,6 @@ public class AggregateTradeConsumer : BackgroundService
         if (_lastTradeIds.TryGetValue(symbol, out var lastId) && trade.AggregateTradeId <= lastId) return;
         _lastTradeIds[symbol] = trade.AggregateTradeId;
 
-        var tradeMs = trade.TradeTime.ToUnixTimeMilliseconds();
-        var startMs = tradeMs - (tradeMs % 60000);
-        var closeMs = startMs + 60000;
-        var isClosed = DateTimeOffset.FromUnixTimeMilliseconds(closeMs) < DateTime.UtcNow;
-
-        if (!_candleStates.TryGetValue(symbol, out var candle))
-        {
-            _candleStates[symbol] = new Candlestick
-            {
-                Symbol = symbol,
-                StartTime = DateTimeOffset.FromUnixTimeMilliseconds(startMs),
-                CloseTime = DateTimeOffset.FromUnixTimeMilliseconds(closeMs),
-                Open = trade.Price,
-                High = trade.Price,
-                Low = trade.Price,
-                Close = trade.Price,
-                Volume = trade.Quantity,
-                Trades = 1,
-                IsClosed = isClosed
-            };
-            _logger.LogInformation($"initialized: {symbol}: {trade.Price}, {trade.Price}, {isClosed}");
-            return;
-        }
-        if (startMs < candle.StartTime.ToUnixTimeMilliseconds())
-        {
-            _logger.LogWarning("Late trade for {Symbol} at {Time}, ignoring", symbol, trade.TradeTime);
-            return;
-        }
-
-        if (startMs > candle.StartTime.ToUnixTimeMilliseconds())
-        {
-            // trade belongs to a newer bucket -> the stored candle is done
-            candle.IsClosed = true;
-            _logger.LogInformation($"closing: {candle.Symbol}: {candle.High}, {candle.Low}, {candle.IsClosed}");
-
-            candle.StartTime = DateTimeOffset.FromUnixTimeMilliseconds(startMs);
-            candle.CloseTime = DateTimeOffset.FromUnixTimeMilliseconds(closeMs);
-            candle.Open = trade.Price;
-            candle.High = trade.Price;
-            candle.Low = trade.Price;
-            candle.Close = trade.Price;
-            candle.Volume = trade.Quantity;
-            candle.Trades = 1;
-            candle.IsClosed = isClosed;
-            _logger.LogInformation($"reset: {candle.Symbol}: {candle.High}, {candle.Low}, {candle.IsClosed}");
-            return;
-        }
-
-        candle.High = Math.Max(candle.High, trade.Price);
-        candle.Low  = Math.Min(candle.Low, trade.Price);
-        candle.Close = trade.Price;
-        candle.Volume += trade.Quantity;
-        candle.Trades++;
-        _logger.LogInformation($"update: {candle.Symbol}: {candle.High}, {candle.Low}, {candle.IsClosed}");
+        await Task.WhenAll(_intervals.Select(q=>q.Handle(trade)));
     }
 }

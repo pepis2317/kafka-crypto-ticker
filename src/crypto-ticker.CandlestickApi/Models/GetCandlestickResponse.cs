@@ -9,7 +9,6 @@ public class GetCandlestickResponse
 
 public class Candlestick
 {
-    public DateTimeOffset TradeTime { get; set; }
     public DateTimeOffset StartTime { get; set; }
     public DateTimeOffset CloseTime { get; set; }
     public string Symbol { get; set; } = string.Empty;

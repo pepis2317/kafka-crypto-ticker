@@ -86,13 +86,11 @@ public class ArchiveAggregateTradeService : IArchiveAggregateTradeService
             await _sink.Write(_buffer);
             _buffer.Clear();
         }
+
+        if (_highestOffsets.Count == 0) return;
         
-        foreach(var (topicPartition, offset) in _highestOffsets)
-        {
-            // stores the next message to read in memory
-            consumer.StoreOffset(new TopicPartitionOffset(topicPartition, offset + 1));
-        }
-        consumer.Commit();
+        var offsets = _highestOffsets.Select(q => new TopicPartitionOffset(q.Key, q.Value + 1)).ToList();
+        consumer.Commit(offsets);
         _highestOffsets.Clear();
     }
 }
