@@ -20,25 +20,32 @@ builder.Services.Configure<S3StorageOptions>(
 builder.Services.AddSingleton<IAmazonS3>(provider =>
 {
     var options = provider.GetRequiredService<IOptions<S3StorageOptions>>().Value;
+    var logger = provider.GetRequiredService<ILoggerFactory>().CreateLogger("S3Setup");
 
-    var config = options.Endpoint != null
-        ? new AmazonS3Config
+    AmazonS3Config config;
+
+    if (options.Endpoint != null)
+    {
+        logger.LogInformation("S3: using custom endpoint {Endpoint} (path-style)", options.Endpoint.AbsoluteUri);
+        config = new AmazonS3Config
         {
             ServiceURL = options.Endpoint.AbsoluteUri,
             ForcePathStyle = true,
-            UseHttp = true
-        }
-        : new AmazonS3Config { RegionEndpoint = RegionEndpoint.GetBySystemName(options.Region) };
-    
-    if(!string.IsNullOrEmpty(options.AccessKey))
+            UseHttp = true,
+            AuthenticationRegion = options.Region
+        };
+    }
+    else
     {
-        return new AmazonS3Client(
-            new BasicAWSCredentials(options.AccessKey, options.SecretKey), 
-            config
-        );
+        logger.LogInformation("S3: Endpoint is null, using AWS region {Region}", options.Region);
+        config = new AmazonS3Config { RegionEndpoint = RegionEndpoint.GetBySystemName(options.Region) };
     }
 
-    return new AmazonS3Client(config);
+    logger.LogInformation("S3: access key set = {HasKey}", !string.IsNullOrEmpty(options.AccessKey));
+
+    return !string.IsNullOrEmpty(options.AccessKey)
+        ? new AmazonS3Client(new BasicAWSCredentials(options.AccessKey, options.SecretKey), config)
+        : new AmazonS3Client(config);
 });
 
 builder.Services.AddSingleton<IRustFsService, RustFsService>();

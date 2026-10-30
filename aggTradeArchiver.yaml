@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agg-trade-archiver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agg-trade-archiver
+  template:
+    metadata:
+      labels:
+        app: agg-trade-archiver
+    spec:
+      containers:
+        - name: agg-trade-archiver
+          image: crypto-ticker-agg-trade-archiver:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: KafkaConfiguration__Brokers
+              value: "kafka:19092"
+            - name: S3StorageOptions__Endpoint
+              value: "http://rustfs:9000"
+            - name: S3StorageOptions__AccessKey
+              valueFrom:
+                secretKeyRef:
+                  name: rustfs-secrets
+                  key: rustfs_access_key
+            - name: S3StorageOptions__SecretKey
+              valueFrom:
+                secretKeyRef:
+                  name: rustfs-secrets
+                  key: rustfs_secret_key
+            - name: S3StorageOptions__Region
+              value: "ap-southeast-1"

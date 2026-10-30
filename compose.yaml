@@ -1,4 +1,13 @@
 ﻿services:
+  ingester:
+    build:
+      context: .
+      dockerfile: src/crypto-ticker.Ingester/Dockerfile
+    environment:
+      KafkaConfiguration__Brokers: kafka:19092
+    depends_on:
+      kafka:
+        condition: service_healthy
   clickhouse:
     image: clickhouse/clickhouse-server:latest
     container_name: clickhouse_server

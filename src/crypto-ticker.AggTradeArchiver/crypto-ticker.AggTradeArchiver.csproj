@@ -17,20 +17,19 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="..\..\.dockerignore">
-      <Link>.dockerignore</Link>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
     <Reference Include="Confluent.Kafka">
       <HintPath>..\..\..\..\.nuget\packages\confluent.kafka\2.16.0\lib\net10.0\Confluent.Kafka.dll</HintPath>
     </Reference>
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\crypto-ticker.CandlestickDataIngester\crypto-ticker.CandlestickDataIngester.csproj" />
     <ProjectReference Include="..\crypto-ticker.Contracts\crypto-ticker.Contracts.csproj" />
     <ProjectReference Include="..\crypto-ticker.Kafka\crypto-ticker.Kafka.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\.dockerignore">
+      <Link>.dockerignore</Link>
+    </Content>
   </ItemGroup>
 </Project>

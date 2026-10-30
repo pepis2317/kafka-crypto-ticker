@@ -214,7 +214,7 @@ public class RustFsService : IRustFsService
     {
         if(!await BucketExistsAsync(bucketName))
         {
-            await CreateBucketAsync(bucketName);
+            return false;
         }
         var request = new ListObjectsV2Request
         {

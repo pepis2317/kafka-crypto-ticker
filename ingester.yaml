@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingester
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ingester
+  template:
+    metadata:
+      labels:
+        app: ingester
+    spec:
+      containers:
+        - name: ingester
+          image: crypto-ticker-ingester:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: KafkaConfiguration__Brokers
+              value: "kafka:19092"
