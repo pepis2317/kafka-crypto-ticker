@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: candlestick-data-ingester
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: candlestick-data-ingester
+  template:
+    metadata:
+      labels:
+        app: candlestick-data-ingester
+    spec:
+      containers:
+        - name: candlestick-data-ingester
+          image: crypto-ticker-candlestick-data-ingester:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: KafkaConfiguration__Brokers
+              value: "kafka:19092"
+            - name: ClickHouseDbConfiguration__Host
+              value: "clickhouse"
+            - name: ClickHouseDbConfiguration__Username
+              value: "clickhouse"
+            - name: ClickHouseDbConfiguration__Password
+              valueFrom:
+                secretKeyRef:
+                  name: clickhouse-secrets
+                  key: ch_password

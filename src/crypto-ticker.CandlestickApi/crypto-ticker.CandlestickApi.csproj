@@ -18,14 +18,14 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Content Include="..\..\.dockerignore">
-        <Link>.dockerignore</Link>
-      </Content>
+      <ProjectReference Include="..\crypto-ticker.Contracts\crypto-ticker.Contracts.csproj" />
+      <ProjectReference Include="..\crypto-ticker.Kafka\crypto-ticker.Kafka.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\crypto-ticker.Contracts\crypto-ticker.Contracts.csproj" />
-      <ProjectReference Include="..\crypto-ticker.Kafka\crypto-ticker.Kafka.csproj" />
+      <Content Include="..\..\.dockerignore">
+        <Link>.dockerignore</Link>
+      </Content>
     </ItemGroup>
 
 </Project>

@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: candlestick-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: candlestick-api
+  template:
+    metadata:
+      labels:
+        app: candlestick-api
+    spec:
+      containers:
+        - name: candlestick-api
+          image: crypto-ticker-candlestick-api:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: KafkaConfiguration__Brokers
+              value: "kafka:19092"
+            - name: ClickHouseDbConfiguration__Host
+              value: "clickhouse"
+            - name: ClickHouseDbConfiguration__Username
+              value: "clickhouse"
+            - name: ClickHouseDbConfiguration__Password
+              valueFrom:
+                secretKeyRef:
+                  name: clickhouse-secrets
+                  key: ch_password
+              

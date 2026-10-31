@@ -7,17 +7,17 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["src/CandlestickApi/CandlestickApi.csproj", "src/CandlestickApi/"]
-RUN dotnet restore "src/CandlestickApi/CandlestickApi.csproj"
+COPY ["src/crypto-ticker.CandlestickApi/crypto-ticker.CandlestickApi.csproj", "src/crypto-ticker.CandlestickApi/"]
+RUN dotnet restore "src/crypto-ticker.CandlestickApi/crypto-ticker.CandlestickApi.csproj"
 COPY . .
-WORKDIR "/src/src/CandlestickApi"
-RUN dotnet build "./CandlestickApi.csproj" -c $BUILD_CONFIGURATION -o /app/build
+WORKDIR "/src/src/crypto-ticker.CandlestickApi"
+RUN dotnet build "./crypto-ticker.CandlestickApi.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./CandlestickApi.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./crypto-ticker.CandlestickApi.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "CandlestickApi.dll"]
+ENTRYPOINT ["dotnet", "crypto-ticker.CandlestickApi.dll"]
