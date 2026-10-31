@@ -28,4 +28,14 @@ spec:
                 secretKeyRef:
                   name: clickhouse-secrets
                   key: ch_password
-              
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: candlestick-api
+spec:
+  selector:
+    app: candlestick-api
+  ports:
+    - port: 80
+      targetPort: 8080
