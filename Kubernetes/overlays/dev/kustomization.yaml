@@ -1,21 +1,25 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - ../../base
+- ../../base
 namespace: dev
 images:
-  - name: ingester
-    newTag: 073e43d5dd7624a6c66ac3db69954661017ec5bc
-  - name: agg-trade-archiver
-    newTag: 073e43d5dd7624a6c66ac3db69954661017ec5bc
-  - name: candlestick-data-ingester
-    newTag: 073e43d5dd7624a6c66ac3db69954661017ec5bc
-  - name: candlestick-api
-    newTag: 073e43d5dd7624a6c66ac3db69954661017ec5bc
+- name: agg-trade-archiver
+  newName: ghcr.io/pepis2317/agg-trade-archiver
+  newTag: 27641d68245f91176cb8291fc0c9a445f1f048b6
+- name: candlestick-api
+  newName: ghcr.io/pepis2317/candlestick-api
+  newTag: 27641d68245f91176cb8291fc0c9a445f1f048b6
+- name: candlestick-data-ingester
+  newName: ghcr.io/pepis2317/candlestick-data-ingester
+  newTag: 27641d68245f91176cb8291fc0c9a445f1f048b6
+- name: ingester
+  newName: ghcr.io/pepis2317/ingester
+  newTag: 27641d68245f91176cb8291fc0c9a445f1f048b6
 replicas:
-  - name: ingester
-    count: 1
-  - name: agg-trade-archiver
-    count: 1
-  - name: candlestick-data-ingester
-    count: 1
+- count: 1
+  name: ingester
+- count: 1
+  name: agg-trade-archiver
+- count: 1
+  name: candlestick-data-ingester
