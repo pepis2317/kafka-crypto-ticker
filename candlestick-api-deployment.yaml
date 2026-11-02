@@ -16,7 +16,25 @@ spec:
         - name: candlestick-api
           image: crypto-ticker-candlestick-api:latest
           imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
           env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: KafkaConfiguration__ConsumerGroup
+              value: "candlestick-api-$(POD_NAME)"
             - name: KafkaConfiguration__Brokers
               value: "kafka:19092"
             - name: ClickHouseDbConfiguration__Host
@@ -28,6 +46,13 @@ spec:
                 secretKeyRef:
                   name: clickhouse-secrets
                   key: ch_password
+            - name: RedisConfiguration__Endpoint
+              value: "redis:6379"
+            - name: RedisConfiguration__Password
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secrets
+                  key: redis_password
 ---
 apiVersion: v1
 kind: Service

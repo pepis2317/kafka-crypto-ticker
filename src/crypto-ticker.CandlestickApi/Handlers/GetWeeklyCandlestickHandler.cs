@@ -6,6 +6,7 @@ namespace CandlestickApi;
 public class GetWeeklyCandlestickHandler : IRequestHandler<GetWeeklyCandlestickRequest, GetCandlestickResponse>
 {
     private readonly IClickHouseService _chService;
+    private readonly IRedisService _redisService;
     private readonly List<string> _symbols;
     private readonly int _maxPageSize;
     
@@ -22,9 +23,10 @@ public class GetWeeklyCandlestickHandler : IRequestHandler<GetWeeklyCandlestickR
         604_800_000  // 1w
     ];
 
-    public GetWeeklyCandlestickHandler(IClickHouseService chService, IOptions<ApiConfiguration> configOptions)
+    public GetWeeklyCandlestickHandler(IClickHouseService chService, IRedisService redisService, IOptions<ApiConfiguration> configOptions)
     {
         _chService = chService;
+        _redisService = redisService;
         _symbols = configOptions.Value.Symbols;
         _maxPageSize = configOptions.Value.MaxPageSize;
     }
@@ -44,11 +46,28 @@ public class GetWeeklyCandlestickHandler : IRequestHandler<GetWeeklyCandlestickR
             };
         }
 
+        var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
         var pageSize = Math.Min(request.PageSize, _maxPageSize);
-        var candlesticks = await _chService.QueryWeeklyCandlesticks(request.Symbol, request.IntervalMilli, request.Page, pageSize);
+        var windowMs = request.IntervalMilli * pageSize;
+        var bucket = (nowMs / windowMs) - (request.Page - 1);
+        var fromMs = bucket * windowMs;
+        var toMs = fromMs + windowMs;
+
+        var isLive = request.Page == 1;
+        var ttl = isLive ? TimeSpan.FromSeconds(1) : TimeSpan.FromHours(6);
+        
+        var key = $"candles:{request.Symbol}:{request.IntervalMilli}:{pageSize}:{bucket}";
+
+        var candles = await _redisService.GetOrSetAsync<List<Candlestick>>(
+            key,
+            () => _chService.QueryWeeklyCandlesticks(request.Symbol, request.IntervalMilli, fromMs, toMs, request.Page, pageSize),
+            ttl
+        );
+        
         return new GetCandlestickResponse
         {
-            Candlesticks = candlesticks,
+            Candlesticks = candles,
             Page = request.Page,
             PageSize = pageSize
         };

@@ -1,4 +1,13 @@
 ﻿services:
+  cache:
+    image: redis:latest
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --save 20 1 --loglevel warning --requirepass password
+    volumes:
+      - cache:/data
+  
   clickhouse:
     image: clickhouse/clickhouse-server:latest
     container_name: clickhouse_server
@@ -134,5 +143,7 @@ secrets:
     file: ./secrets/rustfs_secret_key
     
 volumes:
+  cache:
+    driver: local
   clickhouse_data:
   clickhouse_logs:
