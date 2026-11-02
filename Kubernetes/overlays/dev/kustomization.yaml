@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+namespace: dev
+images:
+  - name: ingester
+    newTag: 073e43d5dd7624a6c66ac3db69954661017ec5bc
+  - name: agg-trade-archiver
+    newTag: 073e43d5dd7624a6c66ac3db69954661017ec5bc
+  - name: candlestick-data-ingester
+    newTag: 073e43d5dd7624a6c66ac3db69954661017ec5bc
+  - name: candlestick-api
+    newTag: 073e43d5dd7624a6c66ac3db69954661017ec5bc
+replicas:
+  - name: ingester
+    count: 1
+  - name: agg-trade-archiver
+    count: 1
+  - name: candlestick-data-ingester
+    count: 1
