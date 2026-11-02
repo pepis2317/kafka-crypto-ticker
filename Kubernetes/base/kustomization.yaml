@@ -6,7 +6,6 @@ resources:
   - candlestick-api-deployment.yaml
   - candlestick-data-ingester-deployment.yaml
   - clickhouse-deployment.yaml
-  - gateway.yaml
   - ingester-deployment.yaml
   - kafka-deployment.yaml
   - prometheus-config.yaml
