@@ -1,0 +1,80 @@
+name: CI
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+env:
+  REGISTRY: ghcr.io
+  OWNER: pepis2317
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - image: ingester
+            context: src/crypto-ticker.Ingester/Dockerfile
+          - image: agg-trade-archiver
+            context: src/crypto-ticker.AggTradeArchiver/Dockerfile
+          - image: candlestick-data-ingester
+            context: src/crypto-ticker.CandlestickDataIngester/Dockerfile
+          - image: candlestick-api
+            context: src/crypto-ticker.CandlestickApi/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docer/login-action@v3
+        if: github.event_name == 'push
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          
+      - uses: docker/build-push-action@v6
+          with:
+            context: .
+            file: ${{ matrix.file }}
+            load: true
+            tags: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ matrix.image }}:${{ github.sha }}
+            
+      - name: Scan with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ matrix.image }}:${{ github.sha }}
+          severity: CRITICAL
+          exit-code: '1'
+          ignore-unfixed: true
+          
+      - name: Push
+        if: github.event_name == 'push'
+        run: docker push ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ matrix.image }}:${{ github.sha }} 
+  update-manifests:
+    needs: build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set image tags
+        working-directory: Kubernetes/overlays/dev
+        run: |
+          for img in crypto-ticker-ingester crypto-ticker-agg-trade-archiver \
+                     crypto-ticker-candlestick-data-ingester crypto-ticker-candlestick-api; do
+            kustomize edit set image $img=ghcr.io/${{ env.OWNER }}/$img:${{ github.sha }}
+          done
+      - name: Commit
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git commit -am "Deploy ${{ github.sha }}"
+          git push 
+    
+
+
+
