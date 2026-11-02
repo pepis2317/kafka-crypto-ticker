@@ -17,13 +17,13 @@ jobs:
     strategy:
       matrix:
         include:
-          - image: ingester
+          - image: crypto-ticker-ingester
             file: src/crypto-ticker.Ingester/Dockerfile
-          - image: agg-trade-archiver
+          - image: crypto-ticker-agg-trade-archiver
             file: src/crypto-ticker.AggTradeArchiver/Dockerfile
-          - image: candlestick-data-ingester
+          - image: crypto-ticker-candlestick-data-ingester
             file: src/crypto-ticker.CandlestickDataIngester/Dockerfile
-          - image: candlestick-api
+          - image: crypto-ticker-candlestick-api
             file: src/crypto-ticker.CandlestickApi/Dockerfile
     steps:
       - uses: actions/checkout@v4
@@ -64,8 +64,8 @@ jobs:
       - name: Set image tags
         working-directory: Kubernetes/overlays/dev
         run: |
-          for img in ingester agg-trade-archiver \
-                     candlestick-data-ingester candlestick-api; do
+          for img in crypto-ticker-ingester crypto-ticker-agg-trade-archiver \
+                     crypto-ticker-candlestick-data-ingester crypto-ticker-candlestick-api; do
             kustomize edit set image $img=ghcr.io/${{ env.OWNER }}/$img:${{ github.sha }}
           done
       - name: Commit
