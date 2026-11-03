@@ -15,4 +15,6 @@ resources:
   - kube-state-metrics.yaml
   - grafana.yaml
   - redis.yaml
+  - loki.yaml
+  - promtail.yaml
   - rustfs.yaml
