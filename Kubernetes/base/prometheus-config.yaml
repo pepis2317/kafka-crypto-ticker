@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: prometheus-server-conf
-  namespace: monitoring
+  namespace: dev
 data:
   prometheus.yml: |
     global:
@@ -12,7 +12,9 @@ data:
       - job_name: 'prometheus'
         static_configs:
           - targets: ['localhost:9090']
-
+      - job_name: 'kube-state-metrics'
+        static_configs:
+          - targets: ['kube-state-metrics.dev.svc.cluster.local:8080']
       - job_name: 'kubernetes-cadvisor'
         scheme: https
         tls_config:
@@ -25,3 +27,5 @@ data:
         relabel_configs:
           - target_label: __metrics_path__
             replacement: /metrics/cadvisor
+          - source_labels: [__meta_kubernetes_node_name]
+            target_label: node

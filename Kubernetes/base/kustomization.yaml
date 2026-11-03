@@ -12,5 +12,7 @@ resources:
   - prometheus-deployment.yaml
   - prometheus-rbac.yaml
   - prometheus-service.yaml
+  - kube-state-metrics.yaml
+  - grafana.yaml
   - redis.yaml
   - rustfs.yaml
