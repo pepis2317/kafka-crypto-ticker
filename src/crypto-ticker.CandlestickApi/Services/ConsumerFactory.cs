@@ -42,24 +42,8 @@ public class ConsumerFactory:IConsumerFactory
 
                 var offsets = c.OffsetsForTimes(query, TimeSpan.FromSeconds(10));
                 return offsets; // these are the offsets used at the start of the consumer
-            }).Build();
+            }).SetErrorHandler((_, e) => LogKafkaError(e)).Build();
         return consumer;
-    }
-    
-    private void LogKafkaStats(string kafkaStatistics)
-    {
-        var stats = JsonSerializer.Deserialize<KafkaStatistics>(kafkaStatistics);
-        if (stats?.Topics == null || stats.Topics.Count <= 0) return;
-        
-        foreach (var topic in stats.Topics)
-        {
-            foreach (var partition in topic.Value.Partitions)
-            {
-                _logger.LogInformation(
-                    "KafkaStats Topic: {Topic} Partition: {Partition} ConsumerLag: {Lag}",
-                    topic.Key, partition.Key, partition.Value.ConsumerLag);
-            }
-        }
     }
     
     private void LogKafkaError(Error error) 

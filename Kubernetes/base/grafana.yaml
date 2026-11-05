@@ -13,6 +13,26 @@ metadata:
   namespace: dev
 
 ---
+# Source: grafana/templates/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana
+  namespace: dev
+  labels:
+    helm.sh/chart: grafana-10.5.15
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: grafana
+    app.kubernetes.io/version: "12.3.1"
+    app.kubernetes.io/component: admin-secret
+type: Opaque
+data:
+  
+  admin-user: "YWRtaW4="
+  admin-password: "d1JNbGNqN3dSU1RUNUhKNFJpWXFMdnhXaHhyVVVUYW1Ib3Uwc0FvUQ=="
+  ldap-toml: ""
+
+---
 # Source: grafana/templates/configmap.yaml
 apiVersion: v1
 kind: ConfigMap
@@ -48,6 +68,10 @@ data:
       name: Prometheus
       type: prometheus
       url: http://prometheus-service.dev.svc.cluster.local:80
+    - access: proxy
+      name: Loki
+      type: loki
+      url: http://loki.dev.svc.cluster.local:3100
   dashboardproviders.yaml: |
     apiVersion: 1
     providers:
@@ -73,6 +97,17 @@ data:
       | sed 's/\${DS_PROMETHEUS}/prometheus/g' \
       | sed 's/\${DS_[A-Z_-]*}/PBFA97CFB590B2093/g' \
     > "/var/lib/grafana/dashboards/default/k8s-dashboard.json"
+      
+    curl -skf \
+    --connect-timeout 60 \
+    --max-time 60 \
+    -H "Accept: application/json" \
+    -H "Content-Type: application/json;charset=UTF-8" \
+      "https://grafana.com/api/dashboards/13639/revisions/2/download" \
+      | sed '/-- .* --/! s/"datasource":.*,/"datasource": "Loki",/g' \
+    > "/var/lib/grafana/dashboards/default/logs-app.json"
+      
+
 ---
 # Source: grafana/templates/dashboards-json-configmap.yaml
 apiVersion: v1
@@ -209,9 +244,10 @@ spec:
         app.kubernetes.io/instance: grafana
         app.kubernetes.io/version: "12.3.1"
       annotations:
-        checksum/config: 25d718e3e01d53490f1dbfd878290353fc16263e2dac8c91d229950a378bff1b
-        checksum/dashboards-json-config: 9d3fcfed1a16d7c86a201de1c99cc18543ed5706813f103a1078ea50611831d0
+        checksum/config: 2a7af92344900e138c91b445b85c99cf5f380994e779d59d79f460e1a05ea82c
+        checksum/dashboards-json-config: a84ac23a7aad824420b970cc860d3cf354d076255f4a2d46ab6737c7e960a088
         checksum/sc-dashboard-provider-config: e70bf6a851099d385178a76de9757bb0bef8299da6d8443602590e44f05fdf24
+        checksum/secret: e35a579bbb0e52e9d134b5fbbd7462f332994cf75972263078cebb5ffd748ab2
         kubectl.kubernetes.io/default-container: grafana
     spec:
       
@@ -330,3 +366,75 @@ spec:
           emptyDir: {}
         - name: search
           emptyDir: {}
+---
+# Source: grafana/templates/tests/test-serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    helm.sh/chart: grafana-10.5.15
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: grafana
+    app.kubernetes.io/version: "12.3.1"
+  name: grafana-test
+  namespace: dev
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": "before-hook-creation,hook-succeeded"
+
+---
+# Source: grafana/templates/tests/test-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-test
+  namespace: dev
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": "before-hook-creation,hook-succeeded"
+  labels:
+    helm.sh/chart: grafana-10.5.15
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: grafana
+    app.kubernetes.io/version: "12.3.1"
+data:
+  run.sh: |-
+    @test "Test Health" {
+      url="http://grafana/api/health"
+
+      code=$(wget --server-response --spider --timeout 90 --tries 10 ${url} 2>&1 | awk '/^  HTTP/{print $2}')
+      [ "$code" == "200" ]
+    }
+
+---
+# Source: grafana/templates/tests/test.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: grafana-test
+  labels:
+    helm.sh/chart: grafana-10.5.15
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: grafana
+    app.kubernetes.io/version: "12.3.1"
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": "before-hook-creation,hook-succeeded"
+  namespace: dev
+spec:
+  serviceAccountName: grafana-test
+  containers:
+    - name: grafana-test
+      image: "docker.io/bats/bats:v1.4.1"
+      imagePullPolicy: "IfNotPresent"
+      command: ["/opt/bats/bin/bats", "-t", "/tests/run.sh"]
+      volumeMounts:
+        - mountPath: /tests
+          name: tests
+          readOnly: true
+  volumes:
+    - name: tests
+      configMap:
+        name: grafana-test
+  restartPolicy: Never
+

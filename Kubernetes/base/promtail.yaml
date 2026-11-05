@@ -35,7 +35,7 @@ stringData:
       
     
     clients:
-      - url: http://loki.monitoring.svc:3100/loki/api/v1/push
+      - url: http://loki.dev.svc.cluster.local:3100/loki/api/v1/push
     
     positions:
       filename: /run/promtail/positions.yaml
