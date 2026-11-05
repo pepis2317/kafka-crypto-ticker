@@ -140,7 +140,6 @@ dotnet run
 ```
 
 ## What I would include in the future
-* Add a functional Loki dashboard to my Grafana manifest
-* Deploying to a cloud provider like Oracle
+* Deploying to a cloud provider
 * Comprehensive unit test coverage
 * A front end app to visualize aggregate trade candlesticsk
