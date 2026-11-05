@@ -15,16 +15,16 @@ images:
   newTag: 27641d68245f91176cb8291fc0c9a445f1f048b6
 - name: crypto-ticker-agg-trade-archiver
   newName: ghcr.io/pepis2317/crypto-ticker-agg-trade-archiver
-  newTag: a712f8e4ed99d11d94fd34fc0092f0438b414f47
+  newTag: ac16d32cd5a3a1126a36440bf8500bb9379f5257
 - name: crypto-ticker-candlestick-api
   newName: ghcr.io/pepis2317/crypto-ticker-candlestick-api
-  newTag: a712f8e4ed99d11d94fd34fc0092f0438b414f47
+  newTag: ac16d32cd5a3a1126a36440bf8500bb9379f5257
 - name: crypto-ticker-candlestick-data-ingester
   newName: ghcr.io/pepis2317/crypto-ticker-candlestick-data-ingester
-  newTag: a712f8e4ed99d11d94fd34fc0092f0438b414f47
+  newTag: ac16d32cd5a3a1126a36440bf8500bb9379f5257
 - name: crypto-ticker-ingester
   newName: ghcr.io/pepis2317/crypto-ticker-ingester
-  newTag: a712f8e4ed99d11d94fd34fc0092f0438b414f47
+  newTag: ac16d32cd5a3a1126a36440bf8500bb9379f5257
 - name: ingester
   newName: ghcr.io/pepis2317/ingester
   newTag: 27641d68245f91176cb8291fc0c9a445f1f048b6
